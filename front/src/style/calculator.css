@@ -1,0 +1,29 @@
+.calculator {
+    display : grid;
+}
+
+.main-buttons {
+    display: flex;
+}
+
+.numbers {
+    display : grid;
+    grid-template-columns : repeat(3, 1fr);
+}
+
+.tools {
+    display : grid;
+    grid-template-columns : repeat(2, 1fr);
+}
+
+.operators {
+    display: flex;
+    flex-direction: column;
+}
+.screen {
+    grid-column : 1 / 4;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    height: 60px;
+}
+
