@@ -1,5 +1,5 @@
 <?php
-
+    header("Access-Control-Allow-Origin: *");
     include_once '../Class/Database.php';
 
     $response = array(
@@ -11,7 +11,7 @@
 
         $data = json_decode(file_get_contents('php://input'), true);
 
-        $operation = $data['operation'];
+        $operation = $data['equation'];
         $result = $data['result'];
 
         $database = new Database();
@@ -22,5 +22,6 @@
             );
         }
     }
+
     echo json_encode($response);
 ?>

@@ -1,7 +1,12 @@
 function BeautifulScreen(props){
     return (
         <div className="screen">
-            <p>{props.value}</p>
+            <div className="eq-screen">
+                <p>{props.equation}</p>
+            </div>
+            <div className="input-screen">
+                <p>{props.inputs}</p>
+            </div>
         </div>
     )
 }

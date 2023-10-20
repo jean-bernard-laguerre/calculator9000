@@ -1,94 +1,165 @@
 import { useEffect, useState } from 'react'
+import { getHistory } from '../services/functions.js';
+import { backURL, operators, numbers } from '../services/config.js';
 import BeautifulScreen from "./BeautifulScreen";
 import NumberButton from "./NumberButton";
 import OperatorButton from "./OperatorButton";
+import FunctionButton from './FunctionButton.jsx';
 import EqualButton from "./EqualButton";
+import Title from "./Title";
 import '../style/calculator.css'
 import ItsOverNineThousand from './ItsOverNineThousand';
-
-const backURL = "http://localhost:80/calculator9000/back/Route/";
 
 function Calculator() {
 
     const [operation, setOperation] = useState("");
+    const [inputs, setInputs] = useState([]);
     const [result, setResult] = useState(0);
     const [history, setHistory] = useState([]);
+    const [historyLoaded, setHistoryLoaded] = useState(false);
 
-    useEffect(() => {}, [operation, result]);
+    useEffect(() => {
+        !historyLoaded && getHistory().then(data => {
+            setHistory(data);
+            setHistoryLoaded(true);
+        });
 
-    function calculate() {
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [operation, inputs]);
+
+    
+
+    const calculate = () => {
+
+        if(operation === ""){return 0};
+
         try{
-            setOperation(eval(operation));
-            setResult(eval(operation));
-            save();
+            let equation = (operation + inputs).replace(/[^0-9%^*\/()\-+.]/g, '');
+            let res = eval((equation));
+
+            setOperation("");
+            setInputs(`${res}`);
+            setResult(res);
+            
+            save(equation, res);
         }
         catch{
             alert("Invalid operation");
         }
     }
 
-    function onClick(event) {
-        setOperation(operation + event.target.textContent);
+    const handleNumbers = (e) => {
+        if (operation[operation.length-1] === ".") {
+            if(e.target.textContent === ".") {return 0};
+        }
+        setInputs(inputs + e.target.textContent);
     }
 
-    function erase() {
-        setOperation(operation.slice(0, -1));
+    const handleOperators = (event) => {
+        setOperation(operation + inputs + event.target.textContent);
+        setInputs("");
     }
 
-    function clear() {
+    const handleEqual = () => {
+        calculate();
+    }
+
+    const handleKeyDown = (event) => {
+        switch (true) {
+            case event.key === "Enter":
+                handleEqual();
+                break;
+            case operators.includes(event.key):
+                setOperation(operation + inputs + event.key);
+                setInputs("");
+                break;
+            case event.key === "Backspace":
+                setInputs(inputs.slice(0, -1));
+                break;
+            case event.key === "Escape":
+                clear();
+                break;
+            case event.key === "Delete":
+                clearHistory();
+                break;
+            case numbers.includes(event.key):
+                setInputs(inputs + event.key);
+                break;
+            default:
+                break;
+        }
+    }
+
+    const erase = () => {
+        setInputs(inputs.slice(0, -1));
+    }
+
+    const clear = () => {
         setOperation("");
+        setInputs("");
         setResult(0);
     }
 
-    function save() {
+    const save = (operation, result) => {
         fetch(backURL + "saveOperation.php", {
             method: "POST",
             body: JSON.stringify({
                 equation: operation,
-                result: eval(operation)
+                result: result
             })
         })
-        setHistory([...history, operation + "=" + result]);
+        setHistory([...history, {
+            equation: operation,
+            result: result
+        }]);
+    }
+
+    const clearHistory = () => {
+        fetch(backURL + "clearHistory.php")
+        setHistory([]);
     }
 
     return (
         <>
+            <Title 
+                title="Calculator 9000" 
+            />
             <div className='calculator'>
                 <ItsOverNineThousand value={result} />
-                <BeautifulScreen value={operation} />
-                <div>
+                <BeautifulScreen 
+                    equation={operation} 
+                    inputs = {inputs}
+                />
+                <div className='buttons'>
                     <div className="tools">
-                        <OperatorButton value="C" onClick={clear} />
-                        <OperatorButton value="<-" onClick={erase} />
+                        <FunctionButton value="CE" onClick={clearHistory} />
+                        <FunctionButton value="C" onClick={clear} />
+                        <FunctionButton value="<-" onClick={erase} />
                     </div>
                     <div className="main-buttons">
                         <div className="numbers">
-                            <NumberButton value={1} onClick={onClick} />
-                            <NumberButton value={2} onClick={onClick} />
-                            <NumberButton value={3} onClick={onClick} />
-                            <NumberButton value={4} onClick={onClick} />
-                            <NumberButton value={5} onClick={onClick} />
-                            <NumberButton value={6} onClick={onClick} />
-                            <NumberButton value={7} onClick={onClick} />
-                            <NumberButton value={8} onClick={onClick} />
-                            <NumberButton value={9} onClick={onClick} />
-                            <NumberButton value={'.'} onClick={onClick} />
-                            <NumberButton value={0} onClick={onClick} />
-                            <EqualButton onClick={calculate} />
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item, index) => {
+                                return <NumberButton key={index} value={item} onClick={handleNumbers} />
+                            })}
+                            <NumberButton value='.' onClick={handleNumbers} />
+                            <NumberButton value={0} onClick={handleNumbers} />
+                            <EqualButton onClick={handleEqual} />
                         </div>
                         <div className="operators">
-                            <OperatorButton value="+" onClick={onClick} />
-                            <OperatorButton value="-" onClick={onClick} />
-                            <OperatorButton value="*" onClick={onClick} />
-                            <OperatorButton value="/" onClick={onClick} />
+                            {['+', '-', '*', '/'].map((item, index) => {
+                                return <OperatorButton key={index} value={item} onClick={handleOperators} />
+                            })}
                         </div>
                     </div>
                 </div>
             </div>
             <div className="history">
                 <h2>History</h2>
-                {history.map((item, index) => {
-                    return <p key={index}>{item}</p>
+                {history && history.map((item, index) => {
+                    return <div key={index}>{item.equation} = {item.result}</div>
                 })}
             </div>
         </>
